@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Propuesta Yester Arquitecturas - Clean Design</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            light: '#4facfe', 
+                            DEFAULT: '#0062E6', // Corporate Blue
+                            dark: '#0047a5', 
+                            accent: '#00f2fe'
+                        },
+                        surface: '#ffffff',
+                        background: '#f8fafc', // slate-50
+                        text: {
+                            main: '#0f172a', // slate-900
+                            muted: '#64748b', // slate-500
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        
+        .slide {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 3rem 4rem;
+            z-index: 10;
+            transform: translateY(20px);
+            background-color: #f8fafc;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            z-index: 20;
+        }
+
+        .content-container {
+            width: 100%;
+            max-width: 1200px;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 4.5rem; /* space for fixed controls bar */
+        }
+
+        /* Clean Card Style */
+        .clean-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .clean-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Slide Headers */
+        .slide-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .slide-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .slide-subtitle {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #0062E6;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        /* Responsive table wrapper */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Progress & Controls */
+        #controls-wrapper {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            z-index: 50;
+            box-sizing: border-box;
+        }
+
+        .control-btn {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: #0062E6;
+            color: #ffffff;
+            border-color: #0062E6;
+        }
+
+        .progress-container {
+            flex-grow: 1;
+            margin: 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .progress-track {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            flex-grow: 1;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #0062E6;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        /* Utility */
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(90deg, #0062E6 0%, #4facfe 100%);
+        }
+
+        /* ===== RESPONSIVE BREAKPOINTS ===== */
+
+        /* Tablet (≤768px) */
+        @media (max-width: 768px) {
+            body {
+                overflow: hidden;
+            }
+
+            .slide {
+                padding: 1.5rem 1.25rem;
+            }
+
+            .slide-title {
+                font-size: 1.35rem;
+            }
+
+            .slide-subtitle {
+                font-size: 0.75rem;
+            }
+
+            .slide-header {
+                margin-bottom: 1.25rem;
+            }
+
+            /* Slide 1 hero text */
+            #slide1 h1 {
+                font-size: 2.25rem !important;
+            }
+
+            #slide1 p.text-2xl {
+                font-size: 1.15rem !important;
+            }
+
+            /* Summary bar on slide 3 */
+            #slide3 .bg-slate-800 {
+                flex-direction: column;
+                gap: 0.5rem;
+                text-align: center;
+            }
+            #slide3 .bg-slate-800 > div:last-child {
+                text-align: center;
+            }
+
+            /* Presupuesto large numbers */
+            #slide7 .text-4xl { font-size: 1.75rem !important; }
+            #slide7 .text-3xl { font-size: 1.4rem !important; }
+
+            /* Alternatives slide: remove scale on selected card */
+            #slide5 .scale-105 {
+                transform: none !important;
+            }
+
+            /* Cronograma timeline line */
+            #slide8 .absolute.top-8 {
+                display: none !important;
+            }
+
+            /* Conclusiones grid */
+            #slide10 .grid.grid-cols-2 {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* Mobile (≤480px) */
+        @media (max-width: 480px) {
+            .slide {
+                padding: 1rem 0.875rem;
+            }
+
+            .slide-title {
+                font-size: 1.1rem;
+            }
+
+            .slide-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            #slide1 h1 {
+                font-size: 1.75rem !important;
+            }
+
+            /* Controls text */
+            .progress-text {
+                font-size: 0.75rem;
+            }
+
+            #controls-wrapper {
+                padding: 0.5rem 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="slide active" id="slide1">
+        <div class="content-container justify-center items-center text-center h-full pb-16">
+            <div class="w-full max-w-4xl relative">
+                <!-- Decorative Elements -->
+                <div class="absolute top-0 right-10 w-32 h-32 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70 -z-10"></div>
+                <div class="absolute bottom-10 left-10 w-32 h-32 bg-cyan-100 rounded-full mix-blend-multiply filter blur-xl opacity-70 -z-10"></div>
+                
+                <i class="fa-solid fa-building text-5xl text-brand mb-8"></i>
+                
+                <h3 class="text-sm font-bold tracking-widest text-brand uppercase mb-4">Actualización Tecnológica Integral</h3>
+                
+                <h1 class="text-5xl md:text-6xl font-extrabold text-main mb-6 leading-tight">
+                    Propuesta de <span class="text-gradient">Modernización</span> <br>TI
+                </h1>
+                
+                <p class="text-2xl text-slate-500 font-light mb-12">
+                    Yester Arquitecturas S.A.S.
+                </p>
+
+                <div class="clean-card p-6 inline-block text-left mx-auto">
+                    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-3 border-b border-slate-100 pb-2">Equipo Consultor</p>
+                    <div class="flex items-center gap-6">
+                        <div class="flex flex-col">
+                            <span class="font-semibold text-slate-800">Camila Serge</span>
+                            <span class="font-semibold text-slate-800">Leonardo Meza</span>
+                            <span class="font-semibold text-slate-800">Habib Camacho</span>
+                        </div>
+                        <div class="border-l border-slate-200 pl-6">
+                            <p class="text-sm text-slate-500 mb-1">Asignatura: Hardware y Software Libre</p>
+                            <p class="text-sm font-semibold text-brand"><i class="fa-regular fa-calendar mr-2"></i>Septiembre 2026</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide2">
+        <div class="content-container">
+            <div class="slide-header">
+                <div class="slide-title">
+                    <i class="fa-solid fa-crosshairs text-brand"></i> Contexto y Objetivos
+                </div>
+                <div class="slide-subtitle">1. Introducción al Caso</div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow">
+                <!-- Contexto -->
+                <div class="clean-card p-6 flex flex-col">
+                    <div class="w-12 h-12 bg-blue-50 text-brand rounded-lg flex items-center justify-center text-xl mb-4">
+                        <i class="fa-solid fa-briefcase"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-800">La Organización</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                        Firma en Barranquilla dedicada al diseño arquitectónico y modelado BIM. 
+                    </p>
+                    <ul class="text-sm text-slate-600 space-y-2 mt-auto">
+                        <li><i class="fa-solid fa-user-tie w-5 text-slate-400"></i> 1 Gerente</li>
+                        <li><i class="fa-solid fa-user-pen w-5 text-slate-400"></i> 2 Coordinadores</li>
+                        <li><i class="fa-solid fa-users w-5 text-slate-400"></i> 7 Auxiliares</li>
+                    </ul>
+                </div>
+
+                <!-- Problema -->
+                <div class="clean-card p-6 flex flex-col border-t-4 border-t-amber-500">
+                    <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-lg flex items-center justify-center text-xl mb-4">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-800">El Problema Central</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Bajo rendimiento y obsolescencia del parque informático actual (adquirido entre 2013-2017).
+                    </p>
+                    <ul class="text-sm text-slate-600 space-y-2 mt-4 bg-amber-50/50 p-3 rounded">
+                        <li class="flex items-start"><i class="fa-solid fa-xmark text-red-500 mt-1 mr-2"></i> Bloqueos en Revit y CAD</li>
+                        <li class="flex items-start"><i class="fa-solid fa-xmark text-red-500 mt-1 mr-2"></i> Renderizados muy lentos</li>
+                        <li class="flex items-start"><i class="fa-solid fa-xmark text-red-500 mt-1 mr-2"></i> Incompatibilidad Windows 11</li>
+                    </ul>
+                </div>
+
+                <!-- Objetivos -->
+                <div class="clean-card p-6 flex flex-col border-t-4 border-t-brand">
+                    <div class="w-12 h-12 bg-blue-50 text-brand rounded-lg flex items-center justify-center text-xl mb-4">
+                        <i class="fa-solid fa-flag-checkered"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-800">Objetivo del Proyecto</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                        Formular una propuesta integral de actualización de hardware, software y S.O.
+                    </p>
+                    <div class="mt-auto">
+                        <p class="text-xs font-bold text-slate-500 uppercase mb-2">Restricciones Clave:</p>
+                        <div class="bg-slate-50 p-3 rounded border border-slate-100 flex items-center justify-between">
+                            <span class="text-sm font-semibold"><i class="fa-solid fa-wallet text-brand mr-2"></i>Presupuesto Máx.</span>
+                            <span class="font-mono font-bold text-green-600">$200M COP</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide3">
+        <div class="content-container">
+            <div class="slide-header">
+                <div class="slide-title">
+                    <i class="fa-solid fa-magnifying-glass-chart text-brand"></i> Diagnóstico y Cuellos de Botella
+                </div>
+                <div class="slide-subtitle">2. Estado del Hardware</div>
+            </div>
+            
+            <div class="flex flex-col gap-6">
+                <!-- Summary bar -->
+                <div class="bg-slate-800 rounded-xl p-6 text-white flex justify-between items-center shadow-lg">
+                    <div>
+                        <h4 class="text-xl font-bold mb-1">Estado del Parque Informático (10 Equipos)</h4>
+                        <p class="text-slate-400 text-sm">Auditoría de equipos adquiridos entre 2013 y 2017</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-3xl font-extrabold text-red-400">80%</span>
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-300">Equipos Obsoletos</p>
+                    </div>
+                </div>
+
+                <!-- Bottlenecks Grid -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="clean-card p-5">
+                        <i class="fa-solid fa-hard-drive text-3xl text-slate-400 mb-3 block"></i>
+                        <h5 class="font-bold text-slate-800 mb-2">Almacenamiento (HDD)</h5>
+                        <p class="text-sm text-slate-600 mb-2">Discos mecánicos a 7200 RPM causan tiempos de arranque de >3 minutos.</p>
+                        <span class="inline-block bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-semibold">Lentitud extrema</span>
+                    </div>
+                    
+                    <div class="clean-card p-5">
+                        <i class="fa-solid fa-memory text-3xl text-slate-400 mb-3 block"></i>
+                        <h5 class="font-bold text-slate-800 mb-2">Memoria RAM</h5>
+                        <p class="text-sm text-slate-600 mb-2">Mayoría estancada en 8GB DDR3. Revit exige mínimo 16GB, ideal 32GB.</p>
+                        <span class="inline-block bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-semibold">Bloqueos BIM</span>
+                    </div>
+
+                    <div class="clean-card p-5">
+                        <i class="fa-solid fa-microchip text-3xl text-slate-400 mb-3 block"></i>
+                        <h5 class="font-bold text-slate-800 mb-2">Procesadores & TPM</h5>
+                        <p class="text-sm text-slate-600 mb-2">CPUs de 4ta a 7ma Gen. Placas base antiguas sin chip TPM 2.0.</p>
+                        <span class="inline-block bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-semibold">Incompatible Win 11</span>
+                    </div>
+
+                    <div class="clean-card p-5">
+                        <i class="fa-solid fa-vr-cardboard text-3xl text-slate-400 mb-3 block"></i>
+                        <h5 class="font-bold text-slate-800 mb-2">GPUs Obsoletas</h5>
+                        <p class="text-sm text-slate-600 mb-2">Gráficos Intel integrados o Quadro K620 (2GB). Insuficiente para render actual.</p>
+                        <span class="inline-block bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-semibold">Imposible Renderizar</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide4">
+        <div class="content-container">
+            <div class="slide-header">
+                <div class="slide-title">
+                    <i class="fa-solid fa-layer-group text-brand"></i> Análisis y Matriz de Software
+                </div>
+                <div class="slide-subtitle">3. Requisitos de Negocio</div>
+            </div>
+            
+            <div class="clean-card overflow-hidden table-responsive">
+                <table class="w-full text-left border-collapse" style="min-width:560px">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200">
+                            <th class="p-4 font-semibold text-slate-700">Software</th>
+                            <th class="p-4 font-semibold text-slate-700">Perfil Objetivo</th>
+                            <th class="p-4 font-semibold text-slate-700">Cumplimiento Actual</th>
+                            <th class="p-4 font-semibold text-slate-700">Acción Requerida</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm divide-y divide-slate-100">
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-4 font-semibold"><i class="fa-brands fa-windows text-blue-500 mr-2"></i>Windows 11 Pro</td>
+                            <td class="p-4 text-slate-600">Todos (10 Equipos)</td>
+                            <td class="p-4"><span class="text-amber-600 font-medium">Solo PC01/PC02 cumplen parcial (TPM)</span></td>
+                            <td class="p-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">Upgrade/Reemplazo</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-4 font-semibold"><i class="fa-brands fa-microsoft text-red-500 mr-2"></i>Microsoft 365</td>
+                            <td class="p-4 text-slate-600">Todos (10 Equipos)</td>
+                            <td class="p-4"><span class="text-green-600 font-medium">Todos cumplen mínimos</span></td>
+                            <td class="p-4"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Instalar Licencias</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-4 font-semibold"><i class="fa-solid fa-pen-ruler text-indigo-500 mr-2"></i>AutoCAD & Revit 24</td>
+                            <td class="p-4 text-slate-600">Coords. y Auxiliares BIM</td>
+                            <td class="p-4"><span class="text-red-600 font-medium">Solo PC02 (Coords) cumple mínimos</span></td>
+                            <td class="p-4"><span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Reemplazo Masivo</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-4 font-semibold"><i class="fa-solid fa-cube text-purple-500 mr-2"></i>Lumion 2024</td>
+                            <td class="p-4 text-slate-600">Coords. y Visualización</td>
+                            <td class="p-4"><span class="text-red-600 font-bold">Ningún equipo cumple (Req. GPU RTX)</span></td>
+                            <td class="p-4"><span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Equipos Nuevos (RTX)</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-4 font-semibold"><i class="fa-solid fa-image text-cyan-500 mr-2"></i>Photoshop 2024</td>
+                            <td class="p-4 text-slate-600">Edición Gráfica (2 PCs)</td>
+                            <td class="p-4"><span class="text-amber-600 font-medium">PC02 cumple, Auxiliares no.</span></td>
+                            <td class="p-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">Upgrade/Reemplazo</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4 p-4 bg-brand/5 border border-brand/20 rounded-lg flex items-start gap-3">
+                <i class="fa-solid fa-circle-info text-brand mt-1"></i>
+                <p class="text-sm text-slate-700"><strong>Conclusión de Software:</strong> Las versiones 2024 exigen aceleración por hardware dedicada. Mantener los equipos actuales limita el uso de licencias modernas y reduce drásticamente la productividad.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide5">
+        <div class="content-container">
+            <div class="slide-header">
+                <div class="slide-title">
+                    <i class="fa-solid fa-code-branch text-brand"></i> Evaluación de Alternativas
+                </div>
+                <div class="slide-subtitle">4. Metodología ABP y Toma de Decisión</div>
+            </div>
+            
+            <p class="text-slate-600 mb-6">Mediante el enfoque de Aprendizaje Basado en Problemas (ABP), se estructuró la siguiente matriz de decisión técnica y financiera:</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Alt 1 -->
+                <div class="clean-card p-6 opacity-70">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2 border-b pb-2">1. Upgrade Parcial</h3>
+                    <ul class="text-sm space-y-3 mt-4 mb-6 text-slate-600">
+                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> Conservar todos los PCs</li>
+                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> Ampliar RAM y SSD</li>
+                        <li><i class="fa-solid fa-xmark text-red-500 mr-2"></i> Mantener CPUs viejas</li>
+                    </ul>
+                    <div class="mt-auto bg-slate-50 p-3 rounded text-center">
+                        <span class="block text-red-600 font-bold mb-1">X No Recomendable</span>
+                        <span class="text-xs text-slate-500">No cumple Win11 ni Revit</span>
+                    </div>
+                </div>
+
+                <!-- Alt 2 -->
+                <div class="clean-card p-6 opacity-70">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2 border-b pb-2">2. Reemplazo Total</h3>
+                    <ul class="text-sm space-y-3 mt-4 mb-6 text-slate-600">
+                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> 10 PCs nuevos (i7, 32GB)</li>
+                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> Máximo rendimiento</li>
+                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> Máxima vida útil</li>
+                    </ul>
+                    <div class="mt-auto bg-slate-50 p-3 rounded text-center">
+                        <span class="block text-red-600 font-bold mb-1">X No Viable</span>
+                        <span class="text-xs text-slate-500">Excede ppto. (~$250M COP)</span>
+                    </div>
+                </div>
+
+                <!-- Alt 3 -->
+                <div class="clean-card p-6 border-2 border-brand shadow-[0_0_15px_rgba(0,98,230,0.15)] relative transform scale-105 z-10">
+                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-brand text-white px-3 py-1 rounded-full text-xs font-bold uppercase">Seleccionada</div>
+                    <h3 class="text-lg font-bold text-brand mb-2 border-b border-brand/20 pb-2">3. Estrategia Mixta</h3>
+                    <ul class="text-sm space-y-3 mt-4 mb-6 text-slate-700 font-medium">
+                        <li><i class="fa-solid fa-check text-brand mr-2"></i> Upgrade PC Gerente</li>
+                        <li><i class="fa-solid fa-check text-brand mr-2"></i> Upgrade PC Coordinador</li>
+                        <li><i class="fa-solid fa-check text-brand mr-2"></i> Reemplazo de 8 Auxiliares</li>
+                    </ul>
+                    <div class="mt-auto bg-blue-50 p-3 rounded text-center border border-blue-100">
+                        <span class="block text-brand font-bold mb-1"><i class="fa-solid fa-check-circle mr-1"></i> Viable y Óptimo</span>
+                        <span class="text-xs text-slate-600">Cumple técnica y ppto.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide6">
+        <div class="content-container">
+            <div class="slide-header">
+                <div class="slide-title">
+                    <i class="fa-solid fa-desktop text-brand"></i> Configuración Objetivo
+                </div>
+                <div class="slide-subtitle">5. Propuesta Seleccionada por Perfil</div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
+                <!-- Gerente -->
+                <div class="clean-card p-0 flex flex-col overflow-hidden">
+                    <div class="bg-slate-100 p-4 text-center border-b border-slate-200">
+                        <i class="fa-solid fa-user-tie text-3xl text-slate-700 mb-2"></i>
+                        <h3 class="font-bold text-slate-800">1x Gerente</h3>
+                        <p class="text-xs text-slate-500 uppercase">Conservar y Mejorar</p>
+                    </div>
+                    <div class="p-5 flex-grow">
+                        <p class="text-xs font-bold text-slate-400 mb-2">USO: OFIMÁTICA / GESTIÓN</p>
+                        <ul class="text-sm space-y-2 text-slate-700">
+                            <li><strong>CPU:</strong> Intel i5 (existente)</li>
+                            <li><strong class="text-brand">RAM:</strong> Upgrade a 16GB</li>
+                            <li><strong class="text-brand">Almacenaje:</strong> Nuevo SSD 500GB</li>
+                            <li><strong>GPU:</strong> Integrada</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Coordinador -->
+                <div class="clean-card p-0 flex flex-col overflow-hidden">
+                    <div class="bg-blue-50 p-4 text-center border-b border-blue-100">
+                        <i class="fa-solid fa-user-pen text-3xl text-brand mb-2"></i>
+                        <h3 class="font-bold text-brand">1x Coordinador</h3>
+                        <p class="text-xs text-blue-500 uppercase">Torre Nueva / Ensamblada</p>
+                    </div>
+                    <div class="p-5 flex-grow">
+                        <p class="text-xs font-bold text-slate-400 mb-2">USO: CAD AVANZADO / BIM / RENDER</p>
+                        <ul class="text-sm space-y-2 text-slate-700">
+                            <li><strong class="text-brand">CPU:</strong> AMD Ryzen 7 5700G</li>
+                            <li><strong class="text-brand">RAM:</strong> 32GB DDR4</li>
+                            <li><strong class="text-brand">Almacenaje:</strong> SSD NVMe 1TB</li>
+                            <li><strong class="text-brand">GPU:</strong> RTX 3060 8GB</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Auxiliares -->
+                <div class="clean-card p-0 flex flex-col overflow-hidden">
+                    <div class="bg-slate-800 p-4 text-center border-b border-slate-900">
+                        <i class="fa-solid fa-users text-3xl text-white mb-2"></i>
+                        <h3 class="font-bold text-white">8x Auxiliares</h3>
+                        <p class="text-xs text-slate-300 uppercase">Equipos Nuevos (Reemplazo)</p>
+                    </div>
+                    <div class="p-5 flex-grow">
+                        <p class="text-xs font-bold text-slate-400 mb-2">USO: DIBUJO / MODELADO BÁSICO</p>
+                        <ul class="text-sm space-y-2 text-slate-700">
+                            <li><strong class="text-brand">CPU:</strong> AMD Ryzen 5 5500</li>
+                            <li><strong class="text-brand">RAM:</strong> 16GB DDR4</li>
+                            <li><strong class="text-brand">Almacenaje:</strong> SSD NVMe 500GB</li>
+                            <li><strong class="text-brand">GPU:</strong> RTX 3050 6GB</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide7">
+        <div class="content-container">
+            <div class="slide-header">
+                <div class="slide-title">
+                    <i class="fa-solid fa-chart-pie text-brand"></i> Presupuesto Integral
+                </div>
+                <div class="slide-subtitle">6. Hardware y Distribución de Licencias</div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Desglose -->
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-4 border-b pb-2">Desglose de Costos (Precios Reales)</h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between p-3 bg-white rounded border border-slate-200">
+                            <span class="text-sm font-semibold text-slate-700"><i class="fa-solid fa-microchip w-5 text-brand"></i> Hardware (Tauret Computadores)</span>
+                            <span class="text-sm font-mono font-bold">$ 30.335.200</span>
+                        </div>
+                        <div class="flex justify-between p-3 bg-white rounded border border-slate-200">
+                            <span class="text-sm font-semibold text-slate-700"><i class="fa-brands fa-windows w-5 text-blue-500"></i> SO (Win11 Pro x10 perpetuas)</span>
+                            <span class="text-sm font-mono font-bold">$ 5.500.000</span>
+                        </div>
+                        <div class="flex justify-between p-3 bg-white rounded border border-slate-200">
+                            <span class="text-sm font-semibold text-slate-700"><i class="fa-solid fa-cloud w-5 text-cyan-500"></i> Ofimática (Microsoft 365 x10)</span>
+                            <span class="text-sm font-mono font-bold">$ 11.280.000</span>
+                        </div>
+                        <div class="flex justify-between p-3 bg-white rounded border border-slate-200">
+                            <span class="text-sm font-semibold text-slate-700"><i class="fa-solid fa-pen-nib w-5 text-purple-500"></i> Especializado (AEC + Adobe)</span>
+                            <span class="text-sm font-mono font-bold">$ 75.556.800</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 bg-green-50 border border-green-200 p-3 rounded flex items-start gap-3">
+                        <i class="fa-solid fa-piggy-bank text-green-600 mt-1"></i>
+                        <p class="text-xs text-green-800">
+                            <strong>Optimización Autodesk:</strong> Adquirir el paquete <em>AEC Collection</em> (5 licencias) reduce el gasto de CAD/BIM/Render, generando un ahorro directo de ~$18.1M COP anuales respecto a compras individuales.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Totales -->
+                <div class="flex flex-col justify-center gap-4">
+                    <div class="clean-card p-6 text-center border-l-4 border-l-slate-400">
+                        <p class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Tope Presupuestal</p>
+                        <p class="text-3xl font-bold text-slate-800">$ 200.000.000 <span class="text-sm text-slate-500">COP</span></p>
+                    </div>
+                    
+                    <div class="clean-card p-6 text-center border-l-4 border-l-brand bg-blue-50/30">
+                        <p class="text-xs text-brand uppercase font-bold tracking-widest mb-1">Costo Total Propuesta (HW + SW 1er Año)</p>
+                        <p class="text-4xl font-extrabold text-brand">$ 122.672.000 <span class="text-sm text-slate-500">COP</span></p>
+                    </div>
+                    
+                    <div class="clean-card p-6 text-center border-l-4 border-l-green-500 bg-green-50/30">
+                        <p class="text-xs text-green-600 uppercase font-bold tracking-widest mb-1">Margen Disponible a Favor</p>
+                        <p class="text-3xl font-bold text-green-600">$ 77.328.000 <span class="text-sm text-slate-500">COP</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide8">
+        <div class="content-container">
+            <div class="slide-header">
+                <div class="slide-title">
+                    <i class="fa-regular fa-calendar-check text-brand"></i> Plan de Implementación
+                </div>
+                <div class="slide-subtitle">7. Cronograma de 7 Semanas</div>
+            </div>
+            
+            <div class="relative max-w-5xl mx-auto w-full mt-10">
+                <!-- Línea conectora -->
+                <div class="absolute top-8 left-10 right-10 h-1 bg-slate-200 hidden md:block z-0"></div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 relative z-10">
+                    
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-16 h-16 bg-white border-4 border-slate-200 rounded-full flex items-center justify-center text-slate-400 font-bold text-xl mb-4 shadow-sm">1</div>
+                        <h4 class="font-bold text-sm text-slate-800 mb-1">Preparación</h4>
+                        <p class="text-xs font-semibold text-brand mb-2">Semana 1</p>
+                        <p class="text-xs text-slate-500 px-2">Validación de ppto y selección de proveedores definitivos.</p>
+                    </div>
+
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-16 h-16 bg-white border-4 border-brand rounded-full flex items-center justify-center text-brand font-bold text-xl mb-4 shadow-sm">2</div>
+                        <h4 class="font-bold text-sm text-slate-800 mb-1">Adquisición</h4>
+                        <p class="text-xs font-semibold text-brand mb-2">Semanas 2-3</p>
+                        <p class="text-xs text-slate-500 px-2">Compra de hardware nuevo, piezas de upgrade y licencias.</p>
+                    </div>
+
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-16 h-16 bg-white border-4 border-slate-200 rounded-full flex items-center justify-center text-slate-400 font-bold text-xl mb-4 shadow-sm">3</div>
+                        <h4 class="font-bold text-sm text-slate-800 mb-1">Instalación</h4>
+                        <p class="text-xs font-semibold text-brand mb-2">Semanas 4-5</p>
+                        <p class="text-xs text-slate-500 px-2">Ensamblaje, formateo e instalación de Win11 y software.</p>
+                    </div>
+
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-16 h-16 bg-white border-4 border-slate-200 rounded-full flex items-center justify-center text-slate-400 font-bold text-xl mb-4 shadow-sm">4</div>
+                        <h4 class="font-bold text-sm text-slate-800 mb-1">Capacitación</h4>
+                        <p class="text-xs font-semibold text-brand mb-2">Semana 6</p>
+                        <p class="text-xs text-slate-500 px-2">Talleres de Win11, Lumion y AEC según perfiles.</p>
+                    </div>
+
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-16 h-16 bg-white border-4 border-slate-200 rounded-full flex items-center justify-center text-slate-400 font-bold text-xl mb-4 shadow-sm">5</div>
+                        <h4 class="font-bold text-sm text-slate-800 mb-1">Soporte</h4>
+                        <p class="text-xs font-semibold text-brand mb-2">Semana 7+</p>
+                        <p class="text-xs text-slate-500 px-2">Monitoreo con benchmarks y ajuste de configuraciones.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide9">
+        <div class="content-container">
+            <div class="slide-header">
+                <div class="slide-title">
+                    <i class="fa-solid fa-scale-balanced text-brand"></i> Riesgos vs Beneficios
+                </div>
+                <div class="slide-subtitle">8. Viabilidad y Acción Preventiva</div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow">
+                
+                <!-- Riesgos -->
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-shield-halved text-amber-500 mr-2"></i> Riesgos y Mitigación</h3>
+                    <div class="space-y-4">
+                        <div class="clean-card p-4 border-l-4 border-l-amber-500">
+                            <h4 class="text-sm font-bold text-slate-800 mb-1">Retraso en compras o stock</h4>
+                            <p class="text-xs text-slate-600"><strong>Prevención:</strong> Contactar proveedores en paralelo y reservar stock con anticipación.</p>
+                        </div>
+                        <div class="clean-card p-4 border-l-4 border-l-amber-500">
+                            <h4 class="text-sm font-bold text-slate-800 mb-1">Resistencia al cambio de S.O.</h4>
+                            <p class="text-xs text-slate-600"><strong>Prevención:</strong> Sesiones prácticas en Semana 6 y guías rápidas impresas de Win11.</p>
+                        </div>
+                        <div class="clean-card p-4 border-l-4 border-l-amber-500">
+                            <h4 class="text-sm font-bold text-slate-800 mb-1">Imprevistos técnicos</h4>
+                            <p class="text-xs text-slate-600"><strong>Prevención:</strong> Pruebas piloto en 2 PCs antes del despliegue masivo y uso del margen ($77M).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Beneficios -->
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-rocket text-brand mr-2"></i> Beneficios Esperados</h3>
+                    <div class="space-y-4">
+                        <div class="clean-card p-4 border-l-4 border-l-brand flex items-start gap-3">
+                            <i class="fa-solid fa-stopwatch text-brand mt-1 text-lg"></i>
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-800 mb-1">Incremento de Productividad</h4>
+                                <p class="text-xs text-slate-600">Mayor velocidad en arranque, edición BIM y tiempos de renderizado gracias a discos SSD y GPUs RTX.</p>
+                            </div>
+                        </div>
+                        <div class="clean-card p-4 border-l-4 border-l-brand flex items-start gap-3">
+                            <i class="fa-solid fa-lock text-brand mt-1 text-lg"></i>
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-800 mb-1">Seguridad y Compatibilidad</h4>
+                                <p class="text-xs text-slate-600">Soporte 100% garantizado con licencias empresariales y Windows 11 Pro (TPM 2.0).</p>
+                            </div>
+                        </div>
+                        <div class="clean-card p-4 border-l-4 border-l-brand flex items-start gap-3">
+                            <i class="fa-solid fa-calendar-check text-brand mt-1 text-lg"></i>
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-800 mb-1">Inversión a Largo Plazo</h4>
+                                <p class="text-xs text-slate-600">Implementación ordenada que proyecta una vida útil de 5 a 7 años para la nueva infraestructura.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide10">
+        <div class="content-container items-center justify-center text-center">
+            
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-8">Conclusiones Generales</h2>
+            
+            <div class="grid grid-cols-2 gap-4 max-w-3xl w-full text-left mb-12">
+                <div class="clean-card p-5 flex items-start gap-3">
+                    <i class="fa-solid fa-check-circle text-green-500 mt-1 text-xl"></i>
+                    <p class="text-sm text-slate-700 font-medium">Resolución definitiva de los problemas de <strong>rendimiento y compatibilidad</strong>.</p>
+                </div>
+                <div class="clean-card p-5 flex items-start gap-3">
+                    <i class="fa-solid fa-check-circle text-green-500 mt-1 text-xl"></i>
+                    <p class="text-sm text-slate-700 font-medium"><strong>Estrategia mixta eficiente:</strong> reutiliza donde es lógico, invierte donde es necesario.</p>
+                </div>
+                <div class="clean-card p-5 flex items-start gap-3">
+                    <i class="fa-solid fa-check-circle text-green-500 mt-1 text-xl"></i>
+                    <p class="text-sm text-slate-700 font-medium">Ejecución segura de <strong>CAD, BIM y Renderizado</strong> bajo normas del fabricante.</p>
+                </div>
+                <div class="clean-card p-5 flex items-start gap-3">
+                    <i class="fa-solid fa-check-circle text-green-500 mt-1 text-xl"></i>
+                    <p class="text-sm text-slate-700 font-medium">Altamente rentable: deja un <strong>margen disponible de ~$77M COP</strong> a favor de la empresa.</p>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <i class="fa-regular fa-handshake text-6xl text-brand mb-4"></i>
+                <h1 class="text-5xl font-extrabold text-slate-900 tracking-tight">¡Gracias!</h1>
+            </div>
+            
+            <p class="text-sm text-slate-400">
+                Referencias consultadas: Requisitos oficiales Autodesk, Lumion, Adobe, Microsoft y catálogos locales.
+            </p>
+        </div>
+    </div>
+
+    <div id="controls-wrapper">
+        <button class="control-btn" id="prev-btn" onclick="prevSlide()" title="Anterior"><i class="fa-solid fa-arrow-left"></i></button>
+        
+        <div class="progress-container">
+            <span class="progress-text" id="current-slide-num">1</span>
+            <div class="progress-track">
+                <div class="progress-fill" id="progress-bar" style="width: 10%;"></div>
+            </div>
+            <span class="progress-text" id="total-slide-num">10</span>
+        </div>
+
+        <button class="control-btn" id="next-btn" onclick="nextSlide()" title="Siguiente"><i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const progressBar = document.getElementById('progress-bar');
+        const currentNum = document.getElementById('current-slide-num');
+        const totalNum = document.getElementById('total-slide-num');
+        let currentSlideIndex = 0;
+
+        totalNum.textContent = slides.length;
+
+        function updatePresentation() {
+            // Hide all slides
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+            });
+            
+            // Show current slide
+            slides[currentSlideIndex].classList.add('active');
+            
+            // Update counter
+            currentNum.textContent = currentSlideIndex + 1;
+            
+            // Update progress bar
+            const progressPercentage = ((currentSlideIndex) / (slides.length - 1)) * 100;
+            progressBar.style.width = `${progressPercentage}%`;
+            
+            // Disable buttons at edges
+            document.getElementById('prev-btn').style.opacity = currentSlideIndex === 0 ? '0.3' : '1';
+            document.getElementById('prev-btn').style.cursor = currentSlideIndex === 0 ? 'default' : 'pointer';
+            
+            document.getElementById('next-btn').style.opacity = currentSlideIndex === slides.length - 1 ? '0.3' : '1';
+            document.getElementById('next-btn').style.cursor = currentSlideIndex === slides.length - 1 ? 'default' : 'pointer';
+        }
+
+        function nextSlide() {
+            if (currentSlideIndex < slides.length - 1) {
+                currentSlideIndex++;
+                updatePresentation();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                currentSlideIndex--;
+                updatePresentation();
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault(); // Prevent page scroll on space
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Touch / swipe support
+        let touchStartX = 0;
+        let touchStartY = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+        document.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].screenX - touchStartX;
+            const dy = e.changedTouches[0].screenY - touchStartY;
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+                if (dx < 0) nextSlide();
+                else prevSlide();
+            }
+        }, { passive: true });
+
+        // Initialize
+        updatePresentation();
+    </script>
+</body>
+</html>
